@@ -1,7 +1,6 @@
 use std::vec;
 
-use crate::app::{App, Mode};
-use crate::tmux;
+use super::app::{App, Mode};
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Flex, Layout, Rect},
@@ -16,7 +15,6 @@ use ratatui::{
 
 impl<'a> App<'a> {
     pub fn render_sessions(&mut self, area: Rect, buf: &mut Buffer) {
-        self.sessions = tmux::list_sessions().unwrap();
         let block = Block::bordered().border_set(border::THICK);
 
         let inner_area = block.inner(area);
@@ -111,7 +109,7 @@ impl<'a> App<'a> {
     }
 
     pub fn render_create(&mut self, area: Rect, buf: &mut Buffer) {
-        let area = centered_rect(area, 70, 50);
+        let area = centered_fixed_rect(area, 40, 15);
         Clear.render(area, buf);
 
         let block = Block::bordered().border_style(Style::new().blue());
@@ -119,16 +117,23 @@ impl<'a> App<'a> {
 
         let [title_area, input_area, instructions_area] = Layout::vertical([
             Constraint::Length(2),
-            Constraint::Length(2),
+            Constraint::Fill(1),
             Constraint::Length(1),
         ])
         .vertical_margin(1)
         .horizontal_margin(1)
         .areas(inner_area);
 
-        Line::from("Name new session".blue())
-            .centered()
-            .render(title_area, buf);
+        {
+            let content = match self.notification.clone() {
+                Some((Mode::Create, msg)) => msg,
+                _ => "Name new session".to_string(),
+            };
+
+            Line::from(content.blue())
+                .centered()
+                .render(title_area, buf);
+        }
 
         // Render input field
         {
@@ -159,7 +164,7 @@ impl<'a> App<'a> {
     }
 
     pub fn render_rename(&mut self, area: Rect, buf: &mut Buffer) {
-        let area = centered_rect(area, 70, 50);
+        let area = centered_fixed_rect(area, 40, 15);
         Clear.render(area, buf);
 
         let block = Block::bordered().border_style(Style::new().light_green());
@@ -167,7 +172,7 @@ impl<'a> App<'a> {
 
         let [title_area, input_area, instructions_area] = Layout::vertical([
             Constraint::Length(2),
-            Constraint::Length(2),
+            Constraint::Fill(1),
             Constraint::Length(1),
         ])
         .vertical_margin(1)
@@ -176,9 +181,17 @@ impl<'a> App<'a> {
 
         let index = self.session_list_state.selected().unwrap();
 
-        Line::from(format!("Rename session '{}' to...", self.sessions[index].name).light_green())
-            .centered()
-            .render(title_area, buf);
+        // Render title
+        {
+            let content = match self.notification.clone() {
+                Some((Mode::Rename, msg)) => msg,
+                _ => format!("Rename session '{}' to...", self.sessions[index].name),
+            };
+
+            Line::from(content.light_green())
+                .centered()
+                .render(title_area, buf);
+        }
 
         // Render input field
         {
@@ -209,7 +222,7 @@ impl<'a> App<'a> {
     }
 
     pub fn render_delete(&mut self, area: Rect, buf: &mut Buffer) {
-        let area = centered_rect(area, 70, 50);
+        let area = centered_fixed_rect(area, 40, 15);
         Clear.render(area, buf);
 
         let block = Block::bordered().border_style(Style::new().red());
@@ -223,9 +236,15 @@ impl<'a> App<'a> {
 
         let index = self.session_list_state.selected().unwrap();
 
-        Line::from(format!("Delete session '{}'?", self.sessions[index].name).red())
-            .centered()
-            .render(title_area, buf);
+        // Render title
+        {
+            let content = match self.notification.clone() {
+                Some((Mode::Delete, msg)) => msg,
+                _ => format!("Delete session '{}'?", self.sessions[index].name),
+            };
+
+            Line::from(content.red()).centered().render(title_area, buf);
+        }
 
         // Render instructions
         {
@@ -284,7 +303,9 @@ fn make_instructions<'a>(instructions: Vec<(&'a str, &'a str)>) -> Line<'a> {
     Line::from(
         instructions
             .iter()
-            .flat_map(|(key, desc)| vec![format!(" {}", key).gray(), format!(":{desc} ").dark_gray()])
+            .flat_map(|(key, desc)| {
+                vec![format!(" {}", key).gray(), format!(":{desc} ").dark_gray()]
+            })
             .collect::<Vec<Span>>(),
     )
 }

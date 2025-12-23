@@ -1,7 +1,12 @@
 use regex::Regex;
 use std::process::Command;
 
-use crate::app::Session;
+#[derive(Debug, Clone)]
+pub struct Session {
+    pub name: String,
+    pub windows: String,
+    pub active: bool,
+}
 
 pub fn list_sessions() -> Result<Vec<Session>, String> {
     let output = run_command("tmux", &["list-sessions"])?;
@@ -61,7 +66,7 @@ fn run_command(command: &str, args: &[&str]) -> Result<String, String> {
 
 #[cfg(test)]
 mod tests {
-    use crate::tmux;
+    use crate::tmux::tmux;
 
     #[test]
     fn test_list_session() {
