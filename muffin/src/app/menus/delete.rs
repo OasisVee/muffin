@@ -1,11 +1,14 @@
 use super::traits::Menu;
 use crate::app::{
-    app::{AppEvent, AppState, Mode},
-    menus::utils::{centered_fixed_rect, make_instructions, send_timed_notification},
+    driver::{AppEvent, AppState, Mode},
+    utils::{centered_fixed_rect, make_instructions, send_timed_notification},
 };
 use crossterm::event::KeyCode;
 use ratatui::{
-    DefaultTerminal, prelude::{Buffer, Constraint, Layout, Rect}, style::{Style, Stylize}, text::Line, widgets::{Block, Clear, Paragraph, StatefulWidget, Widget, Wrap}
+    prelude::{Buffer, Constraint, Layout, Rect},
+    style::{Style, Stylize},
+    text::Line,
+    widgets::{Block, Clear, Paragraph, StatefulWidget, Widget, Wrap},
 };
 use tui_textarea::TextArea;
 
@@ -57,22 +60,21 @@ impl<'a> StatefulWidget for &mut DeleteMenu<'a> {
 }
 
 impl<'a> Menu for DeleteMenu<'a> {
-    fn handle_event(&mut self, event: AppEvent, state: &mut AppState, terminal: &mut DefaultTerminal) {
+    fn handle_event(&mut self, event: AppEvent, state: &mut AppState) {
         match event {
-            AppEvent::Tick => _ = terminal.draw(|frame| frame.render_stateful_widget(self, frame.area(), state)).unwrap(),
             AppEvent::Key(key_event) => match key_event.code {
                 KeyCode::Char('y') | KeyCode::Enter => {
                     if let Some(index) = state.selected_session {
                         match tmux_helper::delete_session(&state.sessions[index].name) {
                             Ok(_) => {
                                 self.text_area = TextArea::default();
-                                state.mode = Mode::Main;
+                                state.mode = Mode::Sessions;
                             }
                             Err(s) => send_timed_notification(&state.event_handler, s),
                         }
                     };
                 }
-                KeyCode::Char('n') | KeyCode::Esc => state.mode = Mode::Main,
+                KeyCode::Char('n') | KeyCode::Esc => state.mode = Mode::Sessions,
                 _ => {}
             },
             AppEvent::ShowNotification(msg) => self.notification = Some(msg),

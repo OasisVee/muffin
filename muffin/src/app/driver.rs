@@ -1,19 +1,15 @@
-use std::io;
-use std::time::Duration;
-
 use futures::{FutureExt, StreamExt};
 use tokio::sync::mpsc;
 use tokio::task::JoinHandle;
-use tui_textarea::TextArea;
 
-use crossterm::event::KeyEvent;
-use ratatui::widgets::ListState;
-use ratatui::{DefaultTerminal, Frame};
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use ratatui::DefaultTerminal;
 
 use tmux_helper::{self, Session};
 
 use crate::app::menus::create::CreateMenu;
 use crate::app::menus::delete::DeleteMenu;
+use crate::app::menus::presets::PresetsMenu;
 use crate::app::menus::rename::RenameMenu;
 use crate::app::menus::sessions::SessionsMenu;
 use crate::app::menus::traits::Menu;
@@ -21,7 +17,8 @@ use crate::app::menus::traits::Menu;
 #[derive(Debug, Clone, Default)]
 pub enum Mode {
     #[default]
-    Main,
+    Sessions,
+    Presets,
     Create,
     Rename,
     Delete,
@@ -34,7 +31,9 @@ pub struct App {
 pub struct AppState {
     pub event_handler: EventHandler,
     pub sessions: Vec<Session>,
+    pub presets: Vec<Session>,
     pub selected_session: Option<usize>,
+    pub selected_preset: Option<usize>,
     pub exit: bool,
     pub mode: Mode,
 }
@@ -42,8 +41,8 @@ pub struct AppState {
 #[derive(Clone, Debug)]
 pub enum AppEvent {
     Error,
-    Tick,
     Key(KeyEvent),
+    Redraw,
     ShowNotification(String),
     ClearNotification,
 }
@@ -57,16 +56,12 @@ pub struct EventHandler {
 
 impl EventHandler {
     pub fn new() -> Self {
-        let tick_rate = std::time::Duration::from_millis(33);
-
         let (tx, rx) = mpsc::unbounded_channel();
         let _tx = tx.clone();
 
         let task = tokio::spawn(async move {
             let mut reader = crossterm::event::EventStream::new();
-            let mut interval = tokio::time::interval(tick_rate);
             loop {
-                let delay = interval.tick();
                 let crossterm_event = reader.next().fuse();
                 tokio::select! {
                     Some(Ok(evt)) = crossterm_event => {
@@ -76,11 +71,11 @@ impl EventHandler {
                                     tx.send(AppEvent::Key(key)).unwrap();
                                 }
                             },
+                            crossterm::event::Event::Resize(_, _) | crossterm::event::Event::FocusGained => {
+                                tx.send(AppEvent::Redraw).unwrap();
+                            },
                             _ => {},
                         }
-                    },
-                    _ = delay => {
-                        tx.send(AppEvent::Tick).unwrap();
                     },
                 }
             }
@@ -102,10 +97,12 @@ impl App {
     pub fn new() -> Self {
         Self {
             state: AppState {
-                mode: Mode::Main,
+                mode: Mode::Sessions,
                 exit: false,
                 sessions: Vec::new(),
                 selected_session: None,
+                presets: Vec::new(),
+                selected_preset: None,
                 event_handler: EventHandler::new(),
             },
         }
@@ -113,34 +110,66 @@ impl App {
 
     /// runs the application's main loop until the user quits
     pub async fn run(&mut self, terminal: &mut DefaultTerminal) -> Result<(), ()> {
-        self.state.sessions = tmux_helper::list_sessions().unwrap();
+        self.state.sessions = tmux_helper::list_sessions().unwrap_or_default();
         let active_index = self.state.sessions.iter().position(|s| s.active);
         self.state.selected_session = active_index;
 
         let mut create_menu = CreateMenu::default();
         let mut rename_menu = RenameMenu::default();
         let mut delete_menu = DeleteMenu::default();
-        let mut sessions_menu = SessionsMenu::default();
+        let mut sessions_menu = SessionsMenu::new(active_index);
+        let mut presets_menu = PresetsMenu::new(active_index);
 
         while !self.state.exit {
+            // Draw phase
+            terminal
+                .draw(|frame| {
+                    let area = frame.area();
+
+                    // unconditionally render sessions menu
+                    frame.render_stateful_widget(&mut sessions_menu, area, &mut self.state);
+
+                    match self.state.mode {
+                        Mode::Create => {
+                            frame.render_stateful_widget(&mut create_menu, area, &mut self.state)
+                        }
+                        Mode::Rename => {
+                            frame.render_stateful_widget(&mut rename_menu, area, &mut self.state)
+                        }
+                        Mode::Delete => {
+                            frame.render_stateful_widget(&mut delete_menu, area, &mut self.state)
+                        }
+                        Mode::Sessions => {} // Nothing extra to draw
+                        Mode::Presets => {
+                            frame.render_stateful_widget(&mut presets_menu, area, &mut self.state)
+                        }
+                    }
+                })
+                .unwrap();
+
+            // Get next event
             let event = self.state.event_handler.next().await?;
-            let should_reload_tmux = !matches!(event, AppEvent::Tick);
-            match self.state.mode {
-                Mode::Main => sessions_menu.handle_event(event, &mut self.state, terminal),
-                Mode::Create => create_menu.handle_event(event, &mut self.state, terminal),
-                Mode::Rename => rename_menu.handle_event(event, &mut self.state, terminal),
-                Mode::Delete => delete_menu.handle_event(event, &mut self.state, terminal),
+
+            if matches!(event, AppEvent::Key(KeyEvent { modifiers, code, .. })
+                if modifiers == KeyModifiers::CONTROL
+                && code == KeyCode::Char('c'))
+            {
+                self.state.exit = true;
             }
 
-            if should_reload_tmux  {
-                self.state.sessions = tmux_helper::list_sessions().unwrap();
+            // Handle said event
+            match self.state.mode {
+                Mode::Sessions => sessions_menu.handle_event(event, &mut self.state),
+                Mode::Create => create_menu.handle_event(event, &mut self.state),
+                Mode::Rename => rename_menu.handle_event(event, &mut self.state),
+                Mode::Delete => delete_menu.handle_event(event, &mut self.state),
+                Mode::Presets => presets_menu.handle_event(event, &mut self.state),
             }
+
+            // Refresh tmux sessions on each keystroke
+            self.state.sessions = tmux_helper::list_sessions().unwrap_or_default();
         }
 
         Ok(())
     }
-
-    // fn draw(&mut self, frame: &mut Frame) {
-    //     frame.render_widget(self, frame.area());
-    // }
 }

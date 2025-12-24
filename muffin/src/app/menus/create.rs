@@ -1,11 +1,14 @@
 use super::traits::Menu;
 use crate::app::{
-    app::{AppEvent, AppState, Mode},
-    menus::utils::{centered_fixed_rect, make_instructions, send_timed_notification},
+    driver::{AppEvent, AppState, Mode},
+    utils::{centered_fixed_rect, make_instructions, send_timed_notification},
 };
 use crossterm::event::KeyCode;
 use ratatui::{
-    DefaultTerminal, prelude::{Buffer, Constraint, Layout, Rect}, style::{Style, Stylize}, text::Line, widgets::{Block, Clear, Paragraph, StatefulWidget, Widget, Wrap}
+    prelude::{Buffer, Constraint, Layout, Rect},
+    style::{Style, Stylize},
+    text::Line,
+    widgets::{Block, Clear, Paragraph, StatefulWidget, Widget, Wrap},
 };
 use tui_textarea::TextArea;
 
@@ -15,16 +18,15 @@ pub struct CreateMenu<'a> {
     notification: Option<String>,
 }
 
-
 impl<'a> StatefulWidget for &mut CreateMenu<'a> {
     type State = AppState;
 
-    fn render(self, area: Rect, buf: &mut Buffer, state: &mut AppState) {
+    fn render(self, area: Rect, buf: &mut Buffer, _state: &mut AppState) {
         let area = centered_fixed_rect(area, 40, 15);
-        Clear.render(area, buf);
 
         let block = Block::bordered().border_style(Style::new().blue());
         let inner_area = block.inner(area);
+        Clear.render(area, buf);
 
         let [title_area, input_area, instructions_area] = Layout::vertical([
             Constraint::Length(2),
@@ -73,32 +75,30 @@ impl<'a> StatefulWidget for &mut CreateMenu<'a> {
 
         block.render(area, buf);
     }
-
 }
 
 impl<'a> Menu for CreateMenu<'a> {
-    fn handle_event(&mut self, event: AppEvent, state: &mut AppState, terminal: &mut DefaultTerminal) {
+    fn handle_event(&mut self, event: AppEvent, state: &mut AppState) {
         match event {
-            AppEvent::Error => todo!(),
-            AppEvent::Tick => _ = terminal.draw(|frame| frame.render_stateful_widget(self, frame.area(), state)).unwrap(),
             AppEvent::Key(key_event) => match key_event.code {
                 KeyCode::Esc => {
                     self.text_area = TextArea::default();
-                    state.mode = Mode::Main;
+                    state.mode = Mode::Sessions;
                 }
                 KeyCode::Enter => {
                     match tmux_helper::create_session(&self.text_area.lines().join("\n")) {
                         Ok(_) => {
                             self.text_area = TextArea::default();
-                            state.mode = Mode::Main;
+                            state.mode = Mode::Sessions;
                         }
                         Err(s) => send_timed_notification(&state.event_handler, s),
                     }
                 }
                 _ => _ = self.text_area.input(key_event),
             },
-            AppEvent::ShowNotification(_) => todo!(),
-            AppEvent::ClearNotification => todo!(),
+            AppEvent::ShowNotification(msg) => self.notification = Some(msg),
+            AppEvent::ClearNotification => self.notification = None,
+            _ => {}
         }
     }
 }

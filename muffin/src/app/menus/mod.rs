@@ -4,4 +4,3 @@ pub mod presets;
 pub mod rename;
 pub mod sessions;
 pub mod traits;
-pub mod utils;

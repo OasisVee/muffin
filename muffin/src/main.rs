@@ -1,5 +1,4 @@
-use app::app::App;
-use std::io;
+use app::driver::App;
 
 mod app;
 
@@ -10,4 +9,3 @@ async fn main() -> Result<(), ()> {
     ratatui::restore();
     app_result
 }
-

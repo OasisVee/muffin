@@ -6,7 +6,7 @@ use ratatui::{
     text::{Line, Span},
 };
 
-use crate::app::app::{AppEvent, EventHandler, Mode};
+use crate::app::driver::{AppEvent, EventHandler};
 
 #[allow(unused)]
 /// helper function to create a centered rect using up certain percentage of the available rect `r`
@@ -18,6 +18,7 @@ pub fn centered_rect(area: Rect, percent_x: u16, percent_y: u16) -> Rect {
     area
 }
 
+#[allow(unused)]
 pub fn centered_fixed_rect(r: Rect, width: u16, height: u16) -> Rect {
     let [_, popup_area, _] = Layout::vertical([
         Constraint::Fill(1),
@@ -34,6 +35,7 @@ pub fn centered_fixed_rect(r: Rect, width: u16, height: u16) -> Rect {
     .split(popup_area)[1]
 }
 
+#[allow(unused)]
 pub fn make_instructions<'a>(instructions: Vec<(&'a str, &'a str)>) -> Line<'a> {
     Line::from(
         instructions
@@ -45,7 +47,7 @@ pub fn make_instructions<'a>(instructions: Vec<(&'a str, &'a str)>) -> Line<'a> 
     )
 }
 
-
+#[allow(unused)]
 pub fn send_timed_notification(event_handler: &EventHandler, msg: String) {
     let tx = event_handler.tx.clone();
 
@@ -54,7 +56,7 @@ pub fn send_timed_notification(event_handler: &EventHandler, msg: String) {
 
     // Spawn a background task to clear it after 3 seconds
     tokio::spawn(async move {
-        tokio::time::sleep(Duration::from_secs(3)).await;
+        tokio::time::sleep(Duration::from_secs(2)).await;
         let _ = tx.send(AppEvent::ClearNotification);
     });
 }
