@@ -12,4 +12,4 @@ crossterm = { version = "0.28.1", features = ["event-stream"] }
 regex = "1.12.2"
 tokio = { version = "1.44.0", features = ["full"] }
 tui-textarea = "0.7.0"
-tmux-helper = { path = "../tmux-helper" }
+tmux = { path = "../tmux" }

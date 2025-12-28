@@ -1,4 +1,4 @@
-use super::traits::Menu;
+use super::Menu;
 use crate::app::{
     driver::{AppEvent, AppState, Mode},
     utils::{centered_fixed_rect, make_instructions, send_timed_notification},
@@ -65,7 +65,7 @@ impl<'a> Menu for DeleteMenu<'a> {
             AppEvent::Key(key_event) => match key_event.code {
                 KeyCode::Char('y') | KeyCode::Enter => {
                     if let Some(index) = state.selected_session {
-                        match tmux_helper::delete_session(&state.sessions[index].name) {
+                        match tmux::delete_session(&state.sessions[index].name) {
                             Ok(_) => {
                                 self.text_area = TextArea::default();
                                 state.mode = Mode::Sessions;

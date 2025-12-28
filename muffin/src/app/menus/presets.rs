@@ -1,4 +1,4 @@
-use super::traits::Menu;
+use super::Menu;
 use crate::app::{
     driver::{AppEvent, AppState, Mode},
     utils::make_instructions,
@@ -103,7 +103,7 @@ impl StatefulWidget for &mut PresetsMenu {
         {
             let content = match self.notification.clone() {
                 Some(msg) => msg.red(),
-                None => "Reading presets from ~/.config/muffin/config.toml".into(),
+                None => "This feature is still in development!".into(),
             };
             Paragraph::new(Line::from(content.italic()))
                 .centered()
@@ -169,6 +169,7 @@ impl StatefulWidget for &mut PresetsMenu {
                 ("k/↑", "prev"),
                 ("g", "first"),
                 ("G", "last"),
+                ("tab", "view sessions"),
             ];
 
             Paragraph::new(make_instructions(instructions))
@@ -202,7 +203,7 @@ impl Menu for PresetsMenu {
                 KeyCode::Char('q') => state.exit = true,
                 KeyCode::Enter => {
                     if let Some(index) = state.selected_preset {
-                        // tmux_helper::switch_session(&state.presets[index].name).unwrap()
+                        // tmux::switch_session(&state.presets[index].name).unwrap()
                     };
                 }
                 _ => {}

@@ -5,14 +5,14 @@ use tokio::task::JoinHandle;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ratatui::DefaultTerminal;
 
-use tmux_helper::{self, Session};
+use tmux::{self, Session};
 
 use crate::app::menus::create::CreateMenu;
 use crate::app::menus::delete::DeleteMenu;
 use crate::app::menus::presets::PresetsMenu;
 use crate::app::menus::rename::RenameMenu;
 use crate::app::menus::sessions::SessionsMenu;
-use crate::app::menus::traits::Menu;
+use crate::app::menus::Menu;
 
 #[derive(Debug, Clone, Default)]
 pub enum Mode {
@@ -110,7 +110,7 @@ impl App {
 
     /// runs the application's main loop until the user quits
     pub async fn run(&mut self, terminal: &mut DefaultTerminal) -> Result<(), ()> {
-        self.state.sessions = tmux_helper::list_sessions().unwrap_or_default();
+        self.state.sessions = tmux::list_sessions().unwrap_or_default();
         let active_index = self.state.sessions.iter().position(|s| s.active);
         self.state.selected_session = active_index;
 
@@ -167,7 +167,7 @@ impl App {
             }
 
             // Refresh tmux sessions on each keystroke
-            self.state.sessions = tmux_helper::list_sessions().unwrap_or_default();
+            self.state.sessions = tmux::list_sessions().unwrap_or_default();
         }
 
         Ok(())

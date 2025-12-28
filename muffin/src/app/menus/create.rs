@@ -1,4 +1,4 @@
-use super::traits::Menu;
+use super::Menu;
 use crate::app::{
     driver::{AppEvent, AppState, Mode},
     utils::{centered_fixed_rect, make_instructions, send_timed_notification},
@@ -86,7 +86,7 @@ impl<'a> Menu for CreateMenu<'a> {
                     state.mode = Mode::Sessions;
                 }
                 KeyCode::Enter => {
-                    match tmux_helper::create_session(&self.text_area.lines().join("\n")) {
+                    match tmux::create_session(&self.text_area.lines().join("\n")) {
                         Ok(_) => {
                             self.text_area = TextArea::default();
                             state.mode = Mode::Sessions;

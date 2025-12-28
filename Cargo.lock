@@ -472,7 +472,7 @@ dependencies = [
  "futures",
  "ratatui",
  "regex",
- "tmux-helper",
+ "tmux",
  "tokio",
  "tui-textarea",
 ]
@@ -520,6 +520,10 @@ dependencies = [
  "smallvec",
  "windows-link",
 ]
+
+[[package]]
+name = "parser"
+version = "0.1.0"
 
 [[package]]
 name = "paste"
@@ -769,7 +773,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "tmux-helper"
+name = "tmux"
 version = "0.1.0"
 dependencies = [
  "regex",

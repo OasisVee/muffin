@@ -1,7 +1,6 @@
-use super::traits::Menu;
+use super::Menu;
 use crate::app::{
-    driver::{AppEvent, AppState, Mode},
-    utils::{make_instructions, send_timed_notification},
+    driver::{AppEvent, AppState, Mode}, menus::sessions, utils::{make_instructions, send_timed_notification}
 };
 use crossterm::event::KeyCode;
 use ratatui::{
@@ -113,21 +112,11 @@ impl StatefulWidget for &mut SessionsMenu {
 
         // Render sessions
         {
-            let max_name_len = state
-                .sessions
-                .iter()
-                .map(|s| s.name.len())
-                .max()
-                .unwrap_or(30)
-                .max(10)
-                + 2
-                + 2
-                + 5
-                + 9;
-
-            let [_, sessions_area, _] = Layout::horizontal([
+            let sessions_width = 20;
+            let [_, sessions_area, active_status_area, _] = Layout::horizontal([
                 Constraint::Fill(1),
-                Constraint::Length(max_name_len.try_into().unwrap_or(30)),
+                Constraint::Length(sessions_width),
+                Constraint::Length(10),
                 Constraint::Fill(1),
             ])
             .areas(sessions_area);
@@ -136,12 +125,14 @@ impl StatefulWidget for &mut SessionsMenu {
                 .sessions
                 .iter()
                 .map(|s| {
-                    let text = format!(
-                        "{:>2} 󱂬 - {:<10} {:<9}",
-                        s.windows,
-                        s.name,
-                        if s.active { " 󰞓 active" } else { "" }
-                    );
+                    let truncated_name = if s.name.len() > sessions_width as usize - 8 {
+                        let mut name = s.name.clone();
+                        name.truncate(sessions_width as usize - 11);
+                        format!("{}...", name)
+                    } else {
+                        s.name.clone()
+                    };
+                    let text = format!("{:>2}  - {}", s.windows, truncated_name);
                     let mut item = Line::from(text.clone());
                     if s.active {
                         item = item.green();
@@ -149,6 +140,15 @@ impl StatefulWidget for &mut SessionsMenu {
                     ListItem::new(item)
                 })
                 .collect::<Vec<ListItem>>();
+
+            state
+                .sessions
+                .iter()
+                .map(|s| if s.active { "   active" } else { "" })
+                .collect::<Vec<&str>>()
+                .join("\n")
+                .green()
+                .render(active_status_area, buf);
 
             StatefulWidget::render(
                 List::new(sessions)
@@ -164,14 +164,15 @@ impl StatefulWidget for &mut SessionsMenu {
         // Render instructions
         {
             let instructions = vec![
+                ("enter", "switch"),
                 ("a", "create"),
                 ("r", "rename"),
-                ("enter", "switch"),
                 ("q", "quit"),
                 ("j/↓", "next"),
                 ("k/↑", "prev"),
                 ("g", "first"),
                 ("G", "last"),
+                ("tab", "view presets"),
             ];
 
             Paragraph::new(make_instructions(instructions))
@@ -196,9 +197,15 @@ impl Menu for SessionsMenu {
                 KeyCode::Up | KeyCode::Char('k') => {
                     state.selected_session = self.select_previous(state.sessions.len())
                 }
-                KeyCode::Char('g') => state.selected_session = self.select_first(state.sessions.len()),
-                KeyCode::Char('M') => state.selected_session = self.select_middle(state.sessions.len()),
-                KeyCode::Char('G') => state.selected_session = self.select_last(state.sessions.len()),
+                KeyCode::Char('g') => {
+                    state.selected_session = self.select_first(state.sessions.len())
+                }
+                KeyCode::Char('M') => {
+                    state.selected_session = self.select_middle(state.sessions.len())
+                }
+                KeyCode::Char('G') => {
+                    state.selected_session = self.select_last(state.sessions.len())
+                }
 
                 // Mode switching
                 KeyCode::Char('a') => state.mode = Mode::Create,
@@ -216,7 +223,7 @@ impl Menu for SessionsMenu {
                                 "Already attached!".into(),
                             );
                         } else {
-                            tmux_helper::switch_session(&state.sessions[index].name).unwrap()
+                            tmux::switch_session(&state.sessions[index].name).unwrap()
                         }
                     };
                 }

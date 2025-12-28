@@ -1,4 +1,4 @@
-use super::traits::Menu;
+use super::Menu;
 use crate::app::{
     driver::{AppEvent, AppState, Mode},
     utils::{centered_fixed_rect, make_instructions, send_timed_notification},
@@ -89,7 +89,7 @@ impl<'a> Menu for RenameMenu<'a> {
                 }
                 KeyCode::Enter => {
                     if let Some(index) = state.selected_session {
-                        match tmux_helper::rename_session(
+                        match tmux::rename_session(
                             &state.sessions[index].name,
                             &self.text_area.lines().join(""),
                         ) {
