@@ -224,7 +224,26 @@ impl Menu for SessionsMenu {
                                 "Already attached!".into(),
                             );
                         } else {
-                            tmux::switch_session(&state.sessions[index].name).unwrap();
+                            let session_name = &state.sessions[index].name;
+                            if std::env::var("TMUX").is_ok() {
+                                // Muffin is running inside tmux, so we can switch clients
+                                match tmux::switch_session(session_name) {
+                                    Ok(_) => {},
+                                    Err(e) => send_timed_notification(
+                                        &state.event_handler,
+                                        format!("Failed to switch session: {}", e),
+                                    ),
+                                };
+                            } else {
+                                // Muffin is running outside tmux, so we need to attach and exit
+                                match tmux::attach_session(session_name) {
+                                    Ok(_) => state.exit = true, // Exit muffin to let tmux take over
+                                    Err(e) => send_timed_notification(
+                                        &state.event_handler,
+                                        format!("Failed to attach to session: {}", e),
+                                    ),
+                                };
+                            }
                         }
                     };
                 }

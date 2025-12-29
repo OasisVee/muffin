@@ -86,10 +86,23 @@ impl<'a> Menu for CreateMenu<'a> {
                     state.mode = Mode::Sessions;
                 }
                 KeyCode::Enter => {
-                    match tmux::create_session(&self.text_area.lines().join("\n")) {
+                    let new_session_name = self.text_area.lines().join("\n");
+                    match tmux::create_session(&new_session_name) {
                         Ok(_) => {
                             self.text_area = TextArea::default();
-                            state.mode = Mode::Sessions;
+                            if std::env::var("TMUX").is_ok() {
+                                // Muffin is running inside tmux, just create the session
+                                state.mode = Mode::Sessions;
+                            } else {
+                                // Muffin is running outside tmux, attach to the new session and exit
+                                match tmux::attach_session(&new_session_name) {
+                                    Ok(_) => state.exit = true, // Exit muffin to let tmux take over
+                                    Err(e) => send_timed_notification(
+                                        &state.event_handler,
+                                        format!("Failed to attach to new session: {}", e),
+                                    ),
+                                };
+                            }
                         }
                         Err(s) => send_timed_notification(&state.event_handler, s),
                     }
