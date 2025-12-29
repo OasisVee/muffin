@@ -1,0 +1,37 @@
+session name="my session" cwd="~/fun/nvim-plugins/tft-nvim/" {
+  window { // inherits cwd from parent session
+    split direction="h" {
+      pane command="nvim" // inherits cwd from parent window 
+      split direction="v" { // panes/splits are equally sized unless otherwise stated
+        pane command="git status"
+        pane
+      }
+    }
+  }
+
+  window name="i have a name!" cwd="~/fun/nvim-plugins/jumpword-nvim/" {
+    split direction="h" {
+      pane command="git status" size=1
+      pane command="nvim"       size=2
+      pane command="yazi"       size=1
+    }
+  }
+}
+
+session name="School" {
+  window name="Class A" cwd="~/School/ClassA"
+
+  window name="Class B" cwd="~/School/ClassB" {
+    split { // default split direction is "v(ertical)"
+      pane command="nvim main.typ"        size=3
+      pane command="typst watch main.typ" size=1
+    }
+  }
+
+  window name="Class C" cwd="~/School/ClassC" {
+    split direction="h" {
+      pane command="nvim" size=3
+      pane command="yazi" size=2
+    }
+  }
+}

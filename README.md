@@ -33,48 +33,9 @@ _(Hint: if you generate your tmux config file with `Nix`, you can replace
 flake's package derivation)_
 
 
-Example `presets.kdl`:
+The following demo runs with [`presets.kdl`](examples/presets.kdl):
 
-```kdl
-session name="zNix" cwd="~/zNix/" {
-  window {
-    split direction="h" {
-      pane command="nvim" size=70
-      split direction="v" {
-        pane command="git status" size=70
-        pane
-      }
-    }
-  }
-
-  window name="server-flake" cwd="~/server-modules/" {
-    // Default split direction is "v(ertical)"
-    split {
-      pane command="nvim" size=1
-      pane command="echo hi" size=1
-      pane size=1
-    }
-  }
-}
-
-session name="School" {
-  window name="Class A" cwd="~/School/ClassA"
-
-  window name="Class B" cwd="~/School/ClassB" {
-    split direction="v" {
-      pane command="nvim" size=3
-      pane command="typst watch main.typ" size=1
-    }
-  }
-
-  window name="Class C" cwd="~/School/ClassC" {
-    split direction="h" {
-      pane command="nvim" size=2
-      pane command="git status" size=1
-    }
-  }
-}
-```
+![Muffin Demo](examples/muffin-demo.mp4)
 
 ## Building
 
