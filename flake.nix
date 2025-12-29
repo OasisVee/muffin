@@ -14,6 +14,7 @@
         version = "1.0.0";
         cargoLock.lockFile = ./Cargo.lock;
         src = pkgs.lib.cleanSource ./.;
+        meta.mainProgram = "muffin";
       };
     };
 }
