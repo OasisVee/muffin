@@ -11,11 +11,11 @@ pub fn parse_config(doc_str: &str) -> Result<BTreeMap<String, Preset>, String> {
     let mut map = BTreeMap::<String, Preset>::new();
 
     // nodes.iter().map(|node| parse_session(node)).collect()
-    for node in nodes.iter().map(|node| parse_session(node)) {
+    for node in nodes.iter().map(parse_session) {
         let node = node?;
         map.insert(node.name.clone(), node);
     }
-    return Ok(map)
+    Ok(map)
 }
 
 fn parse_session(session: &KdlNode) -> Result<Preset, String> {
@@ -25,14 +25,12 @@ fn parse_session(session: &KdlNode) -> Result<Preset, String> {
 
     let session_name: &str = session
         .get("name")
-        .map(|name| name.as_string())
-        .flatten()
+        .and_then(|name| name.as_string())
         .ok_or("Missing or invalid session name!")?;
 
     let session_cwd: &str = session
         .get("cwd")
-        .map(|name| name.as_string())
-        .flatten()
+        .and_then(|name| name.as_string())
         .unwrap_or("~");
 
     let windows: Vec<Window> = match session.children() {
@@ -82,15 +80,15 @@ fn parse_windows(windows: &[KdlNode], parent_cwd: &str) -> Result<Vec<Window>, S
             // ex: window name="bobby" cwd="~/bobby/" { ... }
             let window_cwd = window
                 .get("cwd")
-                .map(|cwd| cwd.as_string())
-                .flatten()
+                .and_then(|cwd| cwd.as_string())
                 .unwrap_or(parent_cwd);
+
             let idx_str = idx.to_string();
+
             let window_name = window
                 .get("name")
-                .map(|cwd| cwd.as_string())
-                .flatten()
-                .unwrap_or(&idx_str.as_str());
+                .and_then(|cwd| cwd.as_string())
+                .unwrap_or(idx_str.as_str());
 
             let panes: LayoutNode = match window.children() {
                 Some(window_children) => parse_panes(window_children.nodes(), window_cwd)?,
@@ -208,11 +206,7 @@ fn parse_node_recursive(node: &KdlNode, parent_cwd: &str) -> Result<LayoutNode, 
 
             // --- Equal Distribution Logic ---
             if !missing_indices.is_empty() {
-                let remaining = if total_explicit >= 100 {
-                    0
-                } else {
-                    100 - total_explicit
-                };
+                let remaining = 100_u8.saturating_sub(total_explicit);
                 let share = remaining / (missing_indices.len() as u8);
 
                 for idx in missing_indices {
