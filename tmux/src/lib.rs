@@ -1,5 +1,6 @@
 use regex::Regex;
 use std::process::Command;
+use std::os::unix::process::CommandExt;
 
 #[derive(Debug, Clone)]
 pub struct Session {
@@ -228,6 +229,20 @@ pub fn rename_session(target: &str, new_name: &str) -> Result<(), String> {
 
 pub fn delete_session(target: &str) -> Result<(), String> {
     run_command("tmux", &["kill-session", "-t", target]).map(|_| ())
+}
+
+pub fn attach_session(target: &str) -> Result<(), String> {
+    let error = Command::new("tmux")
+        .args(&["attach-session", "-t", target])
+        .exec(); // This replaces the current process
+
+    // If exec() returns, it means it failed.
+    // The error will be an std::io::Error, which we convert to String.
+    Err(format!("Failed to exec tmux attach-session: {}", error))
+}
+
+pub fn detach_session() -> Result<(), String> {
+    run_command("tmux", &["detach"]).map(|_| ())
 }
 
 fn run_command(command: &str, args: &[&str]) -> Result<String, String> {
