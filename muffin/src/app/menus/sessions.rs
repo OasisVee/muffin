@@ -175,6 +175,7 @@ impl StatefulWidget for &mut SessionsMenu {
                 ("k/↑", "prev"),
                 ("a", "create"),
                 ("r", "rename"),
+                ("s", "set default"),
                 ("tab", "view presets"),
             ];
 
@@ -214,6 +215,7 @@ impl Menu for SessionsMenu {
                 KeyCode::Char('a') => state.mode = Mode::Create,
                 KeyCode::Char('r') => state.mode = Mode::Rename,
                 KeyCode::Char('d') => state.mode = Mode::Delete,
+                KeyCode::Char('s') => state.mode = Mode::SetDefaultPreset,
                 KeyCode::Tab => state.mode = Mode::Presets,
 
                 // Control

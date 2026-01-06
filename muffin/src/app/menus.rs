@@ -3,6 +3,7 @@ pub mod delete;
 pub mod presets;
 pub mod rename;
 pub mod sessions;
+pub mod set_default_preset;
 
 use crate::app::driver::{AppState, AppEvent};
 

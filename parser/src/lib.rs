@@ -28,10 +28,11 @@ fn parse_session(session: &KdlNode) -> Result<Preset, String> {
         .and_then(|name| name.as_string())
         .ok_or("Missing or invalid session name!")?;
 
+    let home_dir = &std::env::var("HOME").unwrap_or(".".to_string());
     let session_cwd: &str = session
         .get("cwd")
         .and_then(|name| name.as_string())
-        .unwrap_or("~");
+        .unwrap_or(home_dir);
 
     let windows: Vec<Window> = match session.children() {
         Some(session_children) => parse_windows(session_children.nodes(), session_cwd)?,
@@ -238,7 +239,7 @@ mod tests {
 
     #[test]
     fn test_example() {
-        let doc_str: String = std::fs::read("examples/config.kdl")
+        let doc_str: String = std::fs::read("../examples/presets.kdl")
             .unwrap()
             .try_into()
             .unwrap();

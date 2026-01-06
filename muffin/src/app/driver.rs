@@ -15,6 +15,7 @@ use crate::app::menus::delete::DeleteMenu;
 use crate::app::menus::presets::PresetsMenu;
 use crate::app::menus::rename::RenameMenu;
 use crate::app::menus::sessions::SessionsMenu;
+use crate::app::menus::set_default_preset::SetDefaultPresetMenu;
 
 #[derive(Debug, Clone, Default)]
 pub enum Mode {
@@ -24,6 +25,7 @@ pub enum Mode {
     Create,
     Rename,
     Delete,
+    SetDefaultPreset,
 }
 
 pub struct App {
@@ -131,6 +133,7 @@ impl App {
         let mut delete_menu = DeleteMenu::default();
         let mut sessions_menu = SessionsMenu::new(active_index);
         let mut presets_menu = PresetsMenu::new(active_index);
+        let mut set_default_preset_menu = SetDefaultPresetMenu::default();
 
         while !self.state.exit {
             // Draw phase
@@ -155,6 +158,11 @@ impl App {
                         Mode::Presets => {
                             frame.render_stateful_widget(&mut presets_menu, area, &mut self.state)
                         }
+                        Mode::SetDefaultPreset => frame.render_stateful_widget(
+                            &mut set_default_preset_menu,
+                            area,
+                            &mut self.state,
+                        ),
                     }
                 })
                 .map_err(|_| "Terminal rendering error".to_string())?;
@@ -182,6 +190,9 @@ impl App {
                 Mode::Rename => rename_menu.handle_event(event, &mut self.state),
                 Mode::Delete => delete_menu.handle_event(event, &mut self.state),
                 Mode::Presets => presets_menu.handle_event(event, &mut self.state),
+                Mode::SetDefaultPreset => {
+                    set_default_preset_menu.handle_event(event, &mut self.state)
+                }
             }
 
             // Refresh tmux sessions on each keystroke
